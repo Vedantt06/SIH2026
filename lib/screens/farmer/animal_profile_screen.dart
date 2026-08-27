@@ -4,9 +4,9 @@ import '../../core/theme/app_theme.dart';
 import '../../models/animal.dart';
 import '../../models/health_case.dart';
 import 'report_health_screen.dart';
+import '../../data/case_repository.dart';
 
-
-class AnimalProfileScreen extends StatelessWidget {
+class AnimalProfileScreen extends StatefulWidget {
   final Animal animal;
 
   const AnimalProfileScreen({
@@ -15,8 +15,73 @@ class AnimalProfileScreen extends StatelessWidget {
   });
 
   @override
+  State<AnimalProfileScreen> createState() =>
+      _AnimalProfileScreenState();
+}
+
+class _AnimalProfileScreenState extends State<AnimalProfileScreen> {
+
+  HealthCase? get latestCase {
+    final cases = CaseRepository.instance.cases
+        .where(
+          (healthCase) =>
+              healthCase.animal.id == widget.animal.id,
+        )
+        .toList();
+
+    if (cases.isEmpty) {
+      return null;
+    }
+
+    return cases.first;
+  }
+
+  String get currentHealthStatus {
+    final healthCase = latestCase;
+
+    if (healthCase == null) {
+      return widget.animal.healthStatus;
+    }
+
+    switch (healthCase.severity) {
+      case CaseSeverity.low:
+        return 'Needs Attention';
+
+      case CaseSeverity.moderate:
+        return 'Needs Attention';
+
+      case CaseSeverity.high:
+        return 'High Risk';
+
+      case CaseSeverity.critical:
+        return 'Critical';
+    }
+  }
+
+  Color get healthStatusColor {
+    final healthCase = latestCase;
+
+    if (healthCase == null) {
+      return Colors.green;
+    }
+
+    switch (healthCase.severity) {
+      case CaseSeverity.low:
+        return Colors.orange;
+
+      case CaseSeverity.moderate:
+        return Colors.orange;
+
+      case CaseSeverity.high:
+        return Colors.red;
+
+      case CaseSeverity.critical:
+        return Colors.purple;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isHealthy = animal.healthStatus == 'Healthy';
 
     return Scaffold(
       appBar: AppBar(
@@ -41,32 +106,32 @@ class AnimalProfileScreen extends StatelessWidget {
                 _infoRow(
                   Icons.badge_outlined,
                   'Animal ID',
-                  animal.id,
+                  widget.animal.id,
                 ),
                 _infoRow(
                   Icons.pets_outlined,
                   'Species',
-                  animal.species,
+                  widget.animal.species,
                 ),
                 _infoRow(
                   Icons.category_outlined,
                   'Breed',
-                  animal.breed,
+                  widget.animal.breed,
                 ),
                 _infoRow(
                   Icons.wc_outlined,
                   'Gender',
-                  animal.gender,
+                  widget.animal.gender,
                 ),
                 _infoRow(
                   Icons.cake_outlined,
                   'Age',
-                  '${animal.age} years',
+                  '${widget.animal.age} years',
                 ),
                 _infoRow(
                   Icons.location_on_outlined,
                   'Location',
-                  animal.location,
+                  widget.animal.location,
                 ),
               ],
             ),
@@ -79,23 +144,22 @@ class AnimalProfileScreen extends StatelessWidget {
                 _infoRow(
                   Icons.health_and_safety_outlined,
                   'Health Status',
-                  animal.healthStatus,
-                  valueColor:
-                      isHealthy ? Colors.green : Colors.orange,
+                  currentHealthStatus,
+                  valueColor: healthStatusColor,
                 ),
                 _infoRow(
                   Icons.vaccines_outlined,
                   'Vaccination',
-                  animal.vaccinationStatus,
+                  widget.animal.vaccinationStatus,
                   valueColor:
-                      animal.vaccinationStatus == 'Up to date'
+                      widget.animal.vaccinationStatus == 'Up to date'
                           ? Colors.green
                           : Colors.orange,
                 ),
                 _infoRow(
                   Icons.calendar_month_outlined,
                   'Last Checkup',
-                  animal.lastCheckup,
+                  widget.animal.lastCheckup,
                 ),
               ],
             ),
@@ -103,28 +167,38 @@ class AnimalProfileScreen extends StatelessWidget {
             const SizedBox(height: 15),
 
             _section(
-              'Health History',
-              [
-                _historyItem(
-                  'Routine health check',
-                  animal.lastCheckup,
-                  'No abnormal findings',
-                  Colors.green,
-                ),
-                _historyItem(
-                  'Vaccination recorded',
-                  '02 Jul 2026',
-                  'Vaccination completed',
-                  Colors.blue,
-                ),
-                _historyItem(
-                  'Animal registered',
-                  '14 Jun 2026',
-                  'Added to MahaPashu Suraksha',
-                  AppTheme.primary,
-                ),
-              ],
-            ),
+  'Health History',
+  [
+    if (latestCase != null)
+      _historyItem(
+        'Health issue reported',
+        latestCase!.reportedDate,
+        '${latestCase!.symptoms.join(', ')} • ${latestCase!.severityLabel}',
+        healthStatusColor,
+      ),
+
+    _historyItem(
+      'Routine health check',
+      widget.animal.lastCheckup,
+      'No abnormal findings',
+      Colors.green,
+    ),
+
+    _historyItem(
+      'Vaccination recorded',
+      '02 Jul 2026',
+      'Vaccination completed',
+      Colors.blue,
+    ),
+
+    _historyItem(
+      'Animal registered',
+      '14 Jun 2026',
+      'Added to MahaPashu Suraksha',
+      AppTheme.primary,
+    ),
+  ],
+),
 
             const SizedBox(height: 20),
 
@@ -132,25 +206,27 @@ class AnimalProfileScreen extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                    final healthCase = await Navigator.push<HealthCase>(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => ReportHealthScreen(
-                        animal: animal,
-                        ),
-                    ),
-                    );
+  final healthCase = await Navigator.push<HealthCase>(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ReportHealthScreen(
+        animal: widget.animal,
+      ),
+    ),
+  );
 
-                    if (healthCase != null && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                        content: Text(
-                            'Case ${healthCase.id} created successfully.',
-                        ),
-                        ),
-                    );
-                    }
-                },
+  if (healthCase != null && mounted) {
+    setState(() {});
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Case ${healthCase.id} created successfully.',
+        ),
+      ),
+    );
+  }
+},
                 icon: const Icon(
                     Icons.medical_information_outlined,
                 ),
@@ -188,7 +264,7 @@ class AnimalProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            animal.name,
+            widget.animal.name,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 23,
@@ -197,7 +273,7 @@ class AnimalProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 5),
           Text(
-            '${animal.breed} • ${animal.species}',
+            '${widget.animal.breed} • ${widget.animal.species}',
             style: const TextStyle(
               color: Colors.white70,
               fontSize: 12,
@@ -214,7 +290,7 @@ class AnimalProfileScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              animal.healthStatus,
+              currentHealthStatus,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,

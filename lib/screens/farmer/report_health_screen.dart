@@ -5,6 +5,8 @@ import '../../core/theme/app_theme.dart';
 import '../../models/animal.dart';
 import '../../models/health_case.dart';
 import '../../data/case_repository.dart';
+import '../../services/symptom_analyzer.dart';
+import '../../services/ai_triage_service.dart';
 
 
 class ReportHealthScreen extends StatefulWidget {
@@ -502,25 +504,40 @@ TextFormField(
 }
 
   void _submit() {
-    if (!formKey.currentState!.validate()) {
-      return;
-    }
+  if (!formKey.currentState!.validate()) {
+    return;
+  }
 
-    if (selectedSymptoms.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please select at least one symptom.',
-          ),
+  if (selectedSymptoms.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Please select at least one symptom.',
         ),
-      );
-      return;
-    }
+      ),
+    );
+    return;
+  }
 
-    final newCase = HealthCase(
-  id: 'CASE-MH-NK-${DateTime.now().millisecondsSinceEpoch % 100000}',
+  final description = descriptionController.text.trim();
+
+  // Analyze the farmer's description.
+  final analysis = SymptomAnalyzer.analyze(description);
+
+  // Combine manually selected symptoms with symptoms
+  // detected from the description.
+  final allSymptoms = {
+    ...selectedSymptoms,
+    ...analysis.detectedSymptoms,
+  }.toList();
+
+  final newCaseId =
+    'CASE-MH-NK-${DateTime.now().millisecondsSinceEpoch % 100000}';
+
+final initialCase = HealthCase(
+  id: newCaseId,
   animal: widget.animal,
-  symptoms: selectedSymptoms.toList(),
+  symptoms: allSymptoms,
   description: descriptionController.text.trim(),
   severity: severity,
   status: CaseStatus.reported,
@@ -528,8 +545,30 @@ TextFormField(
   location: widget.animal.location,
 );
 
+// Run prototype AI triage.
+final triageResult = AiTriageService.analyze(initialCase);
+
+// Store the case together with the triage result.
+final newCase = HealthCase(
+  id: initialCase.id,
+  animal: initialCase.animal,
+  symptoms: initialCase.symptoms,
+  description: initialCase.description,
+  severity: initialCase.severity,
+  status: initialCase.status,
+  reportedDate: initialCase.reportedDate,
+  location: initialCase.location,
+
+  triageRisk: triageResult.riskLevel,
+  triageDisease: triageResult.possibleDisease,
+  triageRecommendation: triageResult.recommendation,
+  triageUrgency: triageResult.urgency,
+);
+
 CaseRepository.instance.addCase(newCase);
 
-    Navigator.pop(context, newCase);
-  }
+Navigator.pop(context, newCase);
+
+  
+}
 }

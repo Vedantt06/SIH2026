@@ -27,6 +27,7 @@ class HealthCase {
   final CaseStatus status;
   final String reportedDate;
   final String location;
+
   final String? vetName;
   final String? diagnosis;
   final String? labTest;
@@ -35,6 +36,12 @@ class HealthCase {
   final String? labInterpretation;
   final String? disease;
   final String? resultDate;
+
+  // AI triage information
+  final String? triageRisk;
+  final String? triageDisease;
+  final String? triageRecommendation;
+  final String? triageUrgency;
 
   const HealthCase({
     required this.id,
@@ -53,6 +60,12 @@ class HealthCase {
     this.labInterpretation,
     this.disease,
     this.resultDate,
+
+    // AI triage
+    this.triageRisk,
+    this.triageDisease,
+    this.triageRecommendation,
+    this.triageUrgency,
   });
 
   String get statusLabel {

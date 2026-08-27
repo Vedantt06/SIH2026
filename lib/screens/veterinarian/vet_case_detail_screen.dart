@@ -421,33 +421,87 @@ if (currentCase.status == CaseStatus.vetAssessment) {
   }
 
   if (currentCase.status == CaseStatus.diagnosisConfirmed) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: Colors.green.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: const Row(
-        children: [
-          Icon(
-            Icons.check_circle,
-            color: Colors.green,
-          ),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Diagnosis confirmed successfully.',
-              style: TextStyle(
-                color: Colors.green,
-                fontWeight: FontWeight.w600,
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.green.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Row(
+          children: [
+            Icon(
+              Icons.check_circle,
+              color: Colors.green,
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Diagnosis confirmed successfully.',
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
-  }
+
+      const SizedBox(height: 12),
+
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () {
+            final updatedCase = HealthCase(
+              id: currentCase.id,
+              animal: currentCase.animal,
+              symptoms: currentCase.symptoms,
+              description: currentCase.description,
+              severity: currentCase.severity,
+              status: CaseStatus.treatment,
+              reportedDate: currentCase.reportedDate,
+              location: currentCase.location,
+              vetName: currentCase.vetName,
+              diagnosis: currentCase.diagnosis,
+              labTest: currentCase.labTest,
+              labSample: currentCase.labSample,
+              labResult: currentCase.labResult,
+              labInterpretation: currentCase.labInterpretation,
+              disease: currentCase.disease,
+              resultDate: currentCase.resultDate,
+              triageRisk: currentCase.triageRisk,
+              triageDisease: currentCase.triageDisease,
+              triageRecommendation:
+                  currentCase.triageRecommendation,
+              triageUrgency: currentCase.triageUrgency,
+            );
+
+            CaseRepository.instance.updateCase(updatedCase);
+
+            setState(() {
+              currentCase = updatedCase;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Case moved to Treatment.',
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Icons.medication_outlined),
+          label: const Text('Start Treatment'),
+        ),
+      ),
+    ],
+  );
+}
 
   return const SizedBox.shrink();
 }
